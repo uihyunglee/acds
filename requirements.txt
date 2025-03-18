@@ -1,6 +1,7 @@
 # Python Version 3.12
-
 orjson
+pandas
+pyarrow
 sortedcontainers
 websocket-client
 zmq
