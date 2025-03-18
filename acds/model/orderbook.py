@@ -63,7 +63,6 @@ class OrderBookPublisher(Publisher):
         self.publisher_thread.publish(message)
         
         if self.save_mode:
-            self.data_buffer[symbol].append(published_data)
             time_exchange = datetime.datetime.strptime(
                 timeExchange[:26], '%Y-%m-%dT%H:%M:%S.%f'
             )
@@ -73,6 +72,8 @@ class OrderBookPublisher(Publisher):
                 
                 self.save_q.put(data_buffer)
                 self.save_time = self.get_next_save_time()
+            
+            self.data_buffer[symbol].append(published_data)
 
     def periodic_save(self):
         while True:
