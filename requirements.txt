@@ -1,0 +1,6 @@
+# Python Version 3.12
+
+orjson
+sortedcontainers
+websocket-client
+zmq
