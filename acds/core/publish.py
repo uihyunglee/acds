@@ -81,13 +81,9 @@ class PubThread(threading.Thread):
 
     def run(self):
         while self.running:
-            try:
-                msg = self.queue.get(timeout=0.05)
-                self.publisher.send_json(msg)
-                self.queue.task_done()
-            except queue.Empty as e:
-                print(e)
-                continue
+            msg = self.queue.get()
+            self.publisher.send_json(msg)
+            self.queue.task_done()
 
     def publish(self, msg):
         self.queue.put(msg)
