@@ -2,7 +2,7 @@ import time
 from threading import Thread
 
 from acds.exchange.okx import OkxOrderBookPublisher
-# from acds.exchange.bybit import BybitOrderBookPublisher
+from acds.exchange.bybit import BybitOrderBookPublisher
 
 from acds.config_example import EXCHANGE_CONFIG
 
@@ -18,14 +18,14 @@ if __name__ == '__main__':
         zmq_port=EXCHANGE_CONFIG["okx"]["orderbook_port"],
         save_mode=True
     )
-    # bybit_orderbook_publisher = BybitOrderBookPublisher(
-    #     ws_url=EXCHANGE_CONFIG["bybit"]["ws_url"],
-    #     symbols=["BTCUSDT", "ETHUSDT"],
-    #     api_key='',
-    #     secret_key='',
-    #     exchange=EXCHANGE_CONFIG["bybit"]["exchange"],
-    #     zmq_port=EXCHANGE_CONFIG["bybit"]["orderbook_port"]
-    # )
+    bybit_orderbook_publisher = BybitOrderBookPublisher(
+        ws_url=EXCHANGE_CONFIG["bybit"]["ws_url"],
+        symbols=["BTCUSDT", "ETHUSDT"],
+        api_key='',
+        secret_key='',
+        exchange=EXCHANGE_CONFIG["bybit"]["exchange"],
+        zmq_port=EXCHANGE_CONFIG["bybit"]["orderbook_port"]
+    )
     
     threads = []
     pubs = [v for k, v in globals().items() if k.startswith('pub')]
@@ -33,7 +33,8 @@ if __name__ == '__main__':
 
     for t in threads: t.start()
 
-    time.sleep(TIME_SLEEP)
+    while True:
+        time.sleep(TIME_SLEEP)
 
     for pub in pubs: pub.end()
     for t in threads: t.join()
