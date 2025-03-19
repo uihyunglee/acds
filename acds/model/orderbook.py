@@ -1,9 +1,10 @@
 import abc
+import datetime
 import logging
 import os
-import datetime
+import threading
 from copy import deepcopy
-from threading import Thread
+
 from queue import Queue
 
 import pandas as pd
@@ -27,12 +28,18 @@ class OrderBookPublisher(Publisher):
         self.save_mode = save_mode
         if self.save_mode:
             self.data_buffer = {symbol: [] for symbol in symbols}
+            self.tmp_data_buffer = {symbol: [] for symbol in symbols}
+            self.data_snpshot = {}
+            self.saving_flag = False
             self.save_q = Queue()
             
             self.save_dir = os.path.join(os.getcwd(), "data", "order_book")
             os.makedirs(self.save_dir, exist_ok=True)
             
-            self.saving_thread = Thread(target=self.periodic_save, daemon=True)
+            self.lock = threading.Lock()
+            self.saving_thread = threading.Thread(
+                target=self.periodic_save, daemon=True
+            )
             self.saving_thread.start()
         
             self.save_time = self.get_next_save_time()
@@ -61,37 +68,49 @@ class OrderBookPublisher(Publisher):
             'data': published_data
         }
         self.publisher_thread.publish(message)
-        
+
         if self.save_mode:
             time_exchange = datetime.datetime.strptime(
                 timeExchange[:26], '%Y-%m-%dT%H:%M:%S.%f'
             )
             if time_exchange > self.save_time:
-                data_buffer = deepcopy(self.data_buffer)
-                self.data_buffer = {symbol: [] for symbol in self.symbols}
+                self.saving_flag = True
                 
-                self.save_q.put(data_buffer)
+                save_time =  self.save_time
+                save_time = save_time.strftime('%Y%m%d%H%M')
                 self.save_time = self.get_next_save_time()
+                
+                self.save_q.put(save_time)
             
-            self.data_buffer[symbol].append(published_data)
+            if self.saving_flag:
+                self.tmp_data_buffer[symbol].append(published_data)
+            else:
+                self.data_buffer[symbol].append(published_data)
 
     def periodic_save(self):
+        prev_save_time = datetime.datetime.now().strftime('%Y%m%d%H%M')
         while True:
-            data = self.save_q.get()
-            if data:
-                self.save_to_parquet(data)
+            save_time = self.save_q.get()
+            self.save_to_parquet(prev_save_time, save_time)
+            prev_save_time = save_time
     
-    def save_to_parquet(self, data):
-        for symbol, data in data.items():
+    def save_to_parquet(self, prev_save_time, save_time):
+        self.data_snpshot = deepcopy(self.data_buffer)
+        for symbol, data in self.data_snpshot.items():
+            if not data:
+                continue
             topic = f"orderbook_{self.exchange}_{symbol}"
-            save_time = self.save_time.strftime('%Y%m%d%H%M')
-            file_name = f'{topic}_{save_time}.parquet'
+            file_name = f'{topic}_{prev_save_time}_{save_time}.parquet'
             file_path = os.path.join(self.save_dir, file_name)
 
             df = pd.DataFrame(data)
             df.to_parquet(file_path, index=False)
-
             logging.info(f"SAVE: {self.exchange}: {symbol}: {file_name}")
+        
+        with self.lock:
+            self.data_buffer = self.tmp_data_buffer
+            self.saving_flag = False
+        self.tmp_data_buffer = {symbol: [] for symbol in self.symbols}
     
     @staticmethod
     def get_next_save_time():
