@@ -4,6 +4,7 @@ import logging
 import orjson
 
 from acds.model.orderbook import OrderBookPublisher
+from acds.utils.time import utc_now
 
 logging = logging.getLogger('acds')
 
@@ -25,8 +26,7 @@ class OkxOrderBookPublisher(OrderBookPublisher):
             logging.warning(f"WARNING: SUB: {self.exchange}: {message}")
             return
         try:
-            now_utc = datetime.datetime.now(datetime.timezone.utc)
-            timeReceived = now_utc.isoformat(timespec='microseconds')
+            timeReceived = utc_now()
             data = orjson.loads(message)
             self.update_order_book(data, timeReceived)
         except Exception as e:
@@ -70,4 +70,5 @@ class OkxOrderBookPublisher(OrderBookPublisher):
                     logging.error("%s: Error updating ask at price %s for %s: %s", self.exchange, price, symbol, e)
                 timePublished = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='microseconds')
 
+        timePublished = utc_now()
         self.publish_order_book(symbol, timeExchange, timeReceived, timePublished)
