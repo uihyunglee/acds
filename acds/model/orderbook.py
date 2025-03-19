@@ -32,16 +32,16 @@ class OrderBookPublisher(Publisher):
             self.data_snpshot = {}
             self.saving_flag = False
             self.save_q = Queue()
-            
+
             self.save_dir = os.path.join(os.getcwd(), "data", "order_book")
             os.makedirs(self.save_dir, exist_ok=True)
-            
+
             self.lock = threading.Lock()
             self.saving_thread = threading.Thread(
                 target=self.periodic_save, daemon=True
             )
             self.saving_thread.start()
-        
+
             self.save_time = self.get_next_save_time()
 
     @abc.abstractmethod
@@ -50,15 +50,15 @@ class OrderBookPublisher(Publisher):
 
     def publish_order_book(self, symbol, timeExchange,
                            timeReceived, timePublished):
-        order_book_instance = self.order_book[symbol]
+        order_book = self.order_book[symbol]
 
         published_data = {
             'exchange': self.exchange,
             'symbol': symbol,
-            'bidPrices': list(order_book_instance.bids.keys()),
-            'bidSizes': list(order_book_instance.bids.values()),
-            'askPrices': list(order_book_instance.asks.keys()),
-            'askSizes': list(order_book_instance.asks.values()),
+            'bidPrices': list(order_book.bids.keys()),
+            'bidSizes': list(order_book.bids.values()),
+            'askPrices': list(order_book.asks.keys()),
+            'askSizes': list(order_book.asks.values()),
             'timeExchange': timeExchange,
             'timeReceived': timeReceived,
             'timePublished': timePublished,
@@ -75,13 +75,13 @@ class OrderBookPublisher(Publisher):
             )
             if time_exchange > self.save_time:
                 self.saving_flag = True
-                
-                save_time =  self.save_time
+
+                save_time = self.save_time
                 save_time = save_time.strftime('%Y%m%d%H%M')
                 self.save_time = self.get_next_save_time()
-                
+
                 self.save_q.put(save_time)
-            
+
             if self.saving_flag:
                 self.tmp_data_buffer[symbol].append(published_data)
             else:
@@ -93,7 +93,7 @@ class OrderBookPublisher(Publisher):
             save_time = self.save_q.get()
             self.save_to_parquet(prev_save_time, save_time)
             prev_save_time = save_time
-    
+
     def save_to_parquet(self, prev_save_time, save_time):
         self.data_snpshot = deepcopy(self.data_buffer)
         for symbol, data in self.data_snpshot.items():
@@ -106,12 +106,12 @@ class OrderBookPublisher(Publisher):
             df = pd.DataFrame(data)
             df.to_parquet(file_path, index=False)
             logging.info(f"SAVE: {self.exchange}: {symbol}: {file_name}")
-        
+
         with self.lock:
             self.data_buffer = self.tmp_data_buffer
             self.saving_flag = False
         self.tmp_data_buffer = {symbol: [] for symbol in self.symbols}
-    
+
     @staticmethod
     def get_next_save_time():
         now = datetime.datetime.now(datetime.timezone.utc)

@@ -6,8 +6,7 @@ from acds.exchange.okx import OkxOrderBookPublisher
 
 from acds.config_example import EXCHANGE_CONFIG
 
-TIME_SLEEP = 1000  # DEFAULT: float('inf')
-
+TIME_SLEEP = 60 * 60 * 24 * 365
 
 if __name__ == '__main__':
     pub_ob_okx = OkxOrderBookPublisher(
@@ -31,9 +30,9 @@ if __name__ == '__main__':
     threads = []
     pubs = [v for k, v in globals().items() if k.startswith('pub')]
     for pub in pubs: threads.append(Thread(target=pub.start))
-    
+
     for t in threads: t.start()
-        
+
     time.sleep(TIME_SLEEP)
 
     for pub in pubs: pub.end()

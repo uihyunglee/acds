@@ -36,12 +36,12 @@ class OkxOrderBookPublisher(OrderBookPublisher):
         if "data" not in data or not data["data"]:
             logging.warning(f"WARNING: SUB: {self.exchange}: {data}")
             return
-        
+
         symbol = data.get("arg", {}).get("instId")
         if not symbol or symbol not in self.order_book:
             logging.warning(f"WARNING: SUB: {self.exchange}: symbol: {symbol}")
             return
-        
+
         data_item = data["data"][0]
         ts = data_item.get("ts")
         if ts:
@@ -59,7 +59,7 @@ class OkxOrderBookPublisher(OrderBookPublisher):
                     price, quantity = bid[:2]
                     ob.update_order(float(price), float(quantity), "bid")
                 except Exception as e:
-                    logging.error("%s: Error updating bid at price %s for %s: %s", self.exchange, price, symbol, e)
+                    logging.error(f"ERROR: {self.exchange}: {symbol}: {e}")
 
         if "asks" in data_item:
             for ask in data_item["asks"]:
@@ -67,8 +67,7 @@ class OkxOrderBookPublisher(OrderBookPublisher):
                     price, quantity = ask[:2]
                     ob.update_order(float(price), float(quantity), "ask")
                 except Exception as e:
-                    logging.error("%s: Error updating ask at price %s for %s: %s", self.exchange, price, symbol, e)
-                timePublished = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='microseconds')
+                    logging.error(f"ERROR: {self.exchange}: {symbol}: {e}")
 
         timePublished = utc_now()
         self.publish_order_book(symbol, timeExchange, timeReceived, timePublished)

@@ -5,7 +5,7 @@ EXCHANGE_CONFIG = {
         "secret_key": "",
         "exchange": "OKX",
         "orderbook_port": 57102,
-        "position_port" : 57202,
+        "position_port": 57202,
     },
     "bybit": {
         "ws_url": "wss://stream.bybit.com/v5/public/spot",
@@ -13,6 +13,6 @@ EXCHANGE_CONFIG = {
         "secret_key": "",
         "exchange": "BYBIT",
         "orderbook_port": 57103,
-        "position_port" : 57203,
+        "position_port": 57203,
     }
 }
